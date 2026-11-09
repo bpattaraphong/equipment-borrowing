@@ -1,1 +1,303 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#100d18">
+  <title>ระบบยืม–คืนอุปกรณ์</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root{--bg:#0d0b12;--panel:#171320;--panel2:#211a2d;--line:#382b49;--text:#f7f2ff;--muted:#b9adc9;--purple:#a855f7;--purple2:#7c3aed;--pink:#e879f9;--green:#34d399;--red:#fb7185;--yellow:#fbbf24}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 15% 0%,#28163c 0,transparent 38%),var(--bg);color:var(--text);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+    button,input,select,textarea{font:inherit}button{cursor:pointer;border:0;border-radius:12px;padding:11px 16px;font-weight:700;background:linear-gradient(135deg,var(--purple),var(--purple2));color:white}
+    button.secondary{background:#30263d;border:1px solid var(--line)}button.danger{background:#7f1d35}button:disabled{opacity:.5;cursor:not-allowed}
+    .wrap{max-width:1100px;margin:auto;padding:22px 16px 60px}.top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:28px}
+    .brand{display:flex;align-items:center;gap:12px}.logo{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,#c084fc,#6d28d9);display:grid;place-items:center;font-size:23px;font-weight:900}
+    h1,h2,h3,p{margin-top:0}h1{font-size:clamp(23px,4vw,34px);margin-bottom:2px}.sub,.muted{color:var(--muted)}.sub{font-size:13px}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 20px}.tab{background:#211a2d;border:1px solid var(--line);color:var(--muted)}.tab.active{background:#4c1d70;color:white;border-color:#9b5de5}
+    .card{background:linear-gradient(160deg,rgba(35,26,48,.96),rgba(20,16,27,.98));border:1px solid var(--line);border-radius:20px;padding:22px;box-shadow:0 18px 50px #0004;margin-bottom:18px}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}.field{display:flex;flex-direction:column;gap:6px}.field.full{grid-column:1/-1}label{font-size:14px;color:#e6d9f5;font-weight:650}
+    input,select,textarea{width:100%;border:1px solid #49365e;background:#100d18;color:var(--text);padding:12px 13px;border-radius:11px;outline:none}
+    input:focus,select:focus,textarea:focus{border-color:var(--pink);box-shadow:0 0 0 3px #a855f733}textarea{min-height:95px;resize:vertical}
+    input::placeholder,textarea::placeholder{color:#80738f}.hint{font-size:12px;color:var(--muted)}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+    .notice{padding:12px 14px;border-radius:12px;background:#241b31;border:1px solid var(--line);color:#e9d5ff;margin:12px 0}.notice.ok{border-color:#16634d;color:#a7f3d0;background:#10251f}.notice.err{border-color:#7f1d35;color:#fecdd3;background:#2b121b}
+    .hidden{display:none!important}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}.stat{padding:16px;border:1px solid var(--line);border-radius:15px;background:#1b1525}.stat b{font-size:26px;display:block}.stat span{font-size:13px;color:var(--muted)}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}.toolbar input{max-width:320px}.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:14px}
+    table{border-collapse:collapse;width:100%;min-width:850px;background:#15111d}th,td{text-align:left;padding:12px;border-bottom:1px solid #34283f;vertical-align:top;font-size:13px}th{color:#d8b4fe;background:#211a2d;position:sticky;top:0}td .muted{font-size:12px}
+    .pill{display:inline-block;padding:3px 9px;border-radius:99px;background:#38234d;color:#e9d5ff;font-size:12px;white-space:nowrap}.pill.pending{background:#493719;color:#fde68a}.pill.approved,.pill.borrowed{background:#173d35;color:#a7f3d0}.pill.rejected{background:#4a1e2a;color:#fecdd3}.pill.returned{background:#1d3551;color:#bfdbfe}
+    .rowactions{display:flex;gap:6px;flex-wrap:wrap}.rowactions button{padding:7px 10px;font-size:12px}.foot{font-size:12px;color:var(--muted);text-align:center;margin-top:28px}
+    @media(max-width:700px){.wrap{padding:16px 12px 40px}.card{padding:17px}.grid{grid-template-columns:1fr}.field.full{grid-column:auto}.stats{grid-template-columns:1fr 1fr}.top{align-items:flex-start}.top button{padding:9px 11px}.brand{gap:9px}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><div class="logo">↗</div><div><h1 id="siteTitle">ระบบยืม–คืนอุปกรณ์</h1><div class="sub" id="siteDescription">สำหรับนักเรียนและครู</div></div></div>
+    <button class="secondary" id="adminNav">เข้าสู่ระบบแอดมิน</button>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" id="studentTab">ส่งคำขอยืม</button>
+    <button class="tab" id="adminTab">จัดการระบบ</button>
+  </nav>
+
+  <main id="studentPage">
+    <section class="card">
+      <h2>แบบฟอร์มขอยืมอุปกรณ์</h2>
+      <p class="muted">กรอกข้อมูลให้ครบถ้วน วันและเวลายืมกับคืนสามารถเป็นวันเดียวกันได้</p>
+      <form id="borrowForm">
+        <div class="grid">
+          <div class="field"><label for="studentName">ชื่อ–นามสกุล</label><input id="studentName" required maxlength="120" placeholder="กรอกชื่อและนามสกุล"></div>
+          <div class="field"><label for="studentCode">รหัสนักเรียน</label><input id="studentCode" required maxlength="40" placeholder="กรอกรหัสนักเรียน"></div>
+          <div class="field"><label for="studentClass">ระดับชั้น</label><input id="studentClass" required maxlength="30" placeholder="เช่น ม.1/1"></div>
+          <div class="field"><label for="equipmentName">อุปกรณ์ที่ต้องการยืม</label><input id="equipmentName" required maxlength="300" placeholder="พิมพ์รายการอุปกรณ์ที่ต้องการยืม"></div>
+          <div class="field"><label for="borrowAt">วันและเวลาที่ยืม</label><input id="borrowAt" type="datetime-local" required></div>
+          <div class="field"><label for="returnAt">วันและเวลาที่คืน</label><input id="returnAt" type="datetime-local" required></div>
+        </div>
+        <p class="hint">ระบบอนุญาตให้ยืมและคืนภายในวันเดียวกัน แต่เวลาคืนต้องอยู่หลังเวลายืม</p>
+        <div class="actions"><button id="submitBorrow" type="submit">ส่งคำขอยืมอุปกรณ์</button></div>
+      </form>
+      <div id="studentMessage" aria-live="polite"></div>
+    </section>
+    <section class="card">
+      <h3>ติดตามคำขอ</h3>
+      <p class="muted">หลังส่งคำขอ ระบบจะแสดงเลขอ้างอิงไว้ให้ โปรดเก็บเลขนี้เพื่อติดต่อเจ้าหน้าที่</p>
+      <div class="notice">ในเวอร์ชันเริ่มต้นนี้ นักเรียนจะได้รับเลขอ้างอิงหลังส่งคำขอ ส่วนการตรวจสอบสถานะด้วยเลขอ้างอิงจะเปิดใช้หลังเพิ่มนโยบายติดตามแบบปลอดภัยในฐานข้อมูล</div>
+    </section>
+  </main>
+
+  <main id="adminPage" class="hidden">
+    <section class="card" id="loginPanel">
+      <h2>เข้าสู่ระบบผู้ดูแล</h2>
+      <p class="muted">ใช้บัญชีอีเมลและรหัสผ่านของแอดมินที่สร้างไว้ใน Supabase Authentication</p>
+      <form id="loginForm">
+        <div class="grid">
+          <div class="field full"><label for="adminEmail">อีเมลแอดมิน</label><input id="adminEmail" type="email" autocomplete="username" required placeholder="admin@example.com"></div>
+          <div class="field full"><label for="adminPassword">รหัสผ่าน</label><input id="adminPassword" type="password" autocomplete="current-password" required placeholder="กรอกรหัสผ่าน"></div>
+        </div>
+        <div class="actions"><button type="submit" id="loginButton">เข้าสู่ระบบ</button></div>
+      </form>
+      <div id="loginMessage" aria-live="polite"></div>
+    </section>
+
+    <section id="dashboard" class="hidden">
+      <div class="card">
+        <div class="toolbar" style="justify-content:space-between"><div><h2 style="margin-bottom:2px">Admin Dashboard</h2><span class="muted" id="adminIdentity"></span></div><button class="secondary" id="logoutButton">ออกจากระบบ</button></div>
+        <div class="stats">
+          <div class="stat"><b id="countPending">0</b><span>รออนุมัติ</span></div>
+          <div class="stat"><b id="countBorrowed">0</b><span>กำลังยืม</span></div>
+          <div class="stat"><b id="countReturned">0</b><span>คืนสำเร็จ</span></div>
+        </div>
+        <div class="toolbar"><input id="searchRequests" placeholder="ค้นหาชื่อ รหัส ชั้น หรืออุปกรณ์"><button class="secondary" id="refreshButton">รีเฟรช</button><button id="exportButton">ส่งออก CSV</button></div>
+        <div class="tablewrap"><table><thead><tr><th>ผู้ยืม</th><th>อุปกรณ์</th><th>วันเวลายืม–คืน</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody id="requestRows"><tr><td colspan="5">กำลังโหลด...</td></tr></tbody></table></div>
+        <div id="adminMessage" aria-live="polite"></div>
+      </div>
+      <div class="card">
+        <h2>ปรับแต่งหน้าเว็บไซต์</h2>
+        <p class="muted">แก้ไขชื่อและคำอธิบายหน้าแรกได้โดยไม่ต้องแก้ไฟล์ HTML</p>
+        <form id="settingsForm">
+          <div class="grid">
+            <div class="field"><label for="editSiteTitle">ชื่อเว็บไซต์</label><input id="editSiteTitle" maxlength="100" required></div>
+            <div class="field"><label for="editSiteDescription">คำอธิบาย</label><input id="editSiteDescription" maxlength="200"></div>
+          </div>
+          <div class="actions"><button type="submit">บันทึกการตั้งค่า</button></div>
+        </form>
+      </div>
+    </section>
+  </main>
+  <div class="foot">Equipment Borrowing System · Purple / Dark Edition</div>
+</div>
+
+<script>
+(() => {
+  // ใส่ค่าจาก Supabase > Project Settings > API Keys
+  const SUPABASE_URL = "ใส่_PROJECT_URL_ของคุณ";
+  const SUPABASE_PUBLISHABLE_KEY = "ใส่_PUBLISHABLE_KEY_ของคุณ";
+
+  const $ = (id) => document.getElementById(id);
+  const ready = SUPABASE_URL.startsWith("https://") &&
+                SUPABASE_PUBLISHABLE_KEY &&
+                !SUPABASE_PUBLISHABLE_KEY.startsWith("ใส่_");
+  let db = null, requests = [], currentAdmin = null;
+
+  const message = (target, text, type="") => {
+    $(target).innerHTML = "";
+    const div = document.createElement("div");
+    div.className = "notice " + type;
+    div.textContent = text;
+    $(target).appendChild(div);
+  };
+  const clearMessage = (target) => { $(target).innerHTML = ""; };
+  const escapeHTML = (value) => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const fmt = (value) => value ? new Date(value).toLocaleString("th-TH",{dateStyle:"medium",timeStyle:"short"}) : "-";
+
+  function switchPage(page) {
+    const admin = page === "admin";
+    $("studentPage").classList.toggle("hidden", admin);
+    $("adminPage").classList.toggle("hidden", !admin);
+    $("studentTab").classList.toggle("active", !admin);
+    $("adminTab").classList.toggle("active", admin);
+  }
+  $("studentTab").onclick = () => switchPage("student");
+  $("adminTab").onclick = () => switchPage("admin");
+  $("adminNav").onclick = () => switchPage("admin");
+
+  if (!ready) {
+    message("studentMessage", "ยังไม่ได้ตั้งค่า Supabase: กรุณาใส่ Project URL และ Publishable key ในส่วน CONFIG ของไฟล์ index.html ก่อนใช้งาน", "err");
+    $("loginButton").disabled = true;
+  } else if (window.supabase?.createClient) {
+    db = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+  } else {
+    message("studentMessage", "โหลดไลบรารี Supabase ไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วโหลดหน้าใหม่", "err");
+  }
+
+  async function loadSettings() {
+    if (!db) return;
+    const {data,error} = await db.from("site_settings").select("setting_key,setting_value");
+    if (error) return;
+    const map = Object.fromEntries((data || []).map(x => [x.setting_key,x.setting_value]));
+    const title = map.site_name?.value || "ระบบยืม–คืนอุปกรณ์";
+    const desc = map.site_description?.value || "สำหรับนักเรียนและครู";
+    $("siteTitle").textContent = title;
+    $("siteDescription").textContent = desc;
+    $("editSiteTitle").value = title;
+    $("editSiteDescription").value = desc;
+  }
+
+  $("borrowForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!db) return message("studentMessage","ยังไม่ได้ตั้งค่าการเชื่อมต่อฐานข้อมูล","err");
+    const borrow = new Date($("borrowAt").value);
+    const ret = new Date($("returnAt").value);
+    if (!Number.isFinite(+borrow) || !Number.isFinite(+ret) || ret <= borrow)
+      return message("studentMessage","วันและเวลาคืนต้องอยู่หลังวันและเวลาที่ยืม","err");
+    const payload = {
+      student_name: $("studentName").value.trim(),
+      student_code: $("studentCode").value.trim(),
+      student_class: $("studentClass").value.trim(),
+      equipment_name: $("equipmentName").value.trim(),
+      borrow_at: borrow.toISOString(),
+      return_at: ret.toISOString()
+    };
+    $("submitBorrow").disabled = true;
+    const {error} = await db.from("borrow_requests").insert(payload);
+    $("submitBorrow").disabled = false;
+    if (error) return message("studentMessage","ส่งคำขอไม่สำเร็จ: " + error.message,"err");
+    $("borrowForm").reset();
+    message("studentMessage","ส่งคำขอสำเร็จแล้ว กรุณาติดต่อเจ้าหน้าที่เพื่อติดตามสถานะคำขอ","ok");
+  });
+
+  async function verifyAdmin() {
+    if (!db) return;
+    const {data:{user}} = await db.auth.getUser();
+    if (!user) { currentAdmin = null; showLogin(); return; }
+    const {data:profile,error} = await db.from("profiles").select("role,full_name").eq("id",user.id).single();
+    if (error || profile?.role !== "admin") {
+      await db.auth.signOut();
+      currentAdmin = null;
+      showLogin();
+      return message("loginMessage","บัญชีนี้ไม่มีสิทธิ์ผู้ดูแลระบบ","err");
+    }
+    currentAdmin = user;
+    $("loginPanel").classList.add("hidden");
+    $("dashboard").classList.remove("hidden");
+    $("adminIdentity").textContent = profile.full_name || user.email || "ผู้ดูแลระบบ";
+    await loadSettings();
+    await loadRequests();
+  }
+  function showLogin() {
+    $("loginPanel").classList.remove("hidden");
+    $("dashboard").classList.add("hidden");
+  }
+  $("loginForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!db) return;
+    $("loginButton").disabled = true;
+    const {error} = await db.auth.signInWithPassword({
+      email: $("adminEmail").value.trim(),
+      password: $("adminPassword").value
+    });
+    $("loginButton").disabled = false;
+    if (error) return message("loginMessage","เข้าสู่ระบบไม่สำเร็จ: ตรวจสอบอีเมลและรหัสผ่าน","err");
+    clearMessage("loginMessage");
+    await verifyAdmin();
+  });
+  $("logoutButton").onclick = async () => { await db.auth.signOut(); currentAdmin=null; showLogin(); };
+  $("refreshButton").onclick = loadRequests;
+
+  async function loadRequests() {
+    if (!db || !currentAdmin) return;
+    $("requestRows").innerHTML = '<tr><td colspan="5">กำลังโหลดข้อมูล...</td></tr>';
+    const {data,error} = await db.from("borrow_requests").select("*").order("created_at",{ascending:false});
+    if (error) {
+      $("requestRows").innerHTML = '<tr><td colspan="5">โหลดข้อมูลไม่สำเร็จ</td></tr>';
+      return message("adminMessage","โหลดคำขอไม่สำเร็จ: " + error.message,"err");
+    }
+    requests = data || [];
+    $("countPending").textContent = requests.filter(x=>x.status==="pending").length;
+    $("countBorrowed").textContent = requests.filter(x=>x.status==="borrowed" || x.status==="approved").length;
+    $("countReturned").textContent = requests.filter(x=>x.status==="returned").length;
+    renderRequests();
+  }
+  function renderRequests() {
+    const q = $("searchRequests").value.trim().toLowerCase();
+    const filtered = requests.filter(r => [r.student_name,r.student_code,r.student_class,r.equipment_name].join(" ").toLowerCase().includes(q));
+    if (!filtered.length) { $("requestRows").innerHTML='<tr><td colspan="5">ไม่พบรายการ</td></tr>'; return; }
+    $("requestRows").innerHTML = filtered.map(r => {
+      const statusLabels = {pending:"รออนุมัติ",approved:"อนุมัติแล้ว",rejected:"ไม่อนุมัติ",borrowed:"กำลังยืม",returned:"คืนสำเร็จ"};
+      const actions = r.status === "pending"
+        ? `<button data-id="${r.id}" data-status="approved">อนุมัติ</button><button class="danger" data-id="${r.id}" data-status="rejected">ปฏิเสธ</button>`
+        : r.status === "approved" ? `<button data-id="${r.id}" data-status="borrowed">ยืนยันจ่ายอุปกรณ์</button>`
+        : r.status === "borrowed" ? `<button data-id="${r.id}" data-status="returned">ยืนยันคืน</button>` : "—";
+      return `<tr>
+        <td><b>${escapeHTML(r.student_name)}</b><div class="muted">${escapeHTML(r.student_code)} · ${escapeHTML(r.student_class)}</div></td>
+        <td>${escapeHTML(r.equipment_name)}</td>
+        <td>${escapeHTML(fmt(r.borrow_at))}<div class="muted">คืน: ${escapeHTML(fmt(r.return_at))}</div></td>
+        <td><span class="pill ${escapeHTML(r.status)}">${statusLabels[r.status] || escapeHTML(r.status)}</span></td>
+        <td><div class="rowactions">${actions}</div></td>
+      </tr>`;
+    }).join("");
+    $("requestRows").querySelectorAll("button[data-id]").forEach(btn => btn.onclick = () => updateStatus(btn.dataset.id,btn.dataset.status));
+  }
+  $("searchRequests").addEventListener("input",renderRequests);
+  async function updateStatus(id,status) {
+    const {error} = await db.from("borrow_requests").update({
+      status,
+      processed_by: currentAdmin.id,
+      processed_at: new Date().toISOString()
+    }).eq("id",id);
+    if (error) return message("adminMessage","เปลี่ยนสถานะไม่สำเร็จ: "+error.message,"err");
+    message("adminMessage","บันทึกสถานะเรียบร้อย","ok");
+    await loadRequests();
+  }
+  $("settingsForm").addEventListener("submit",async (event)=>{
+    event.preventDefault();
+    if (!db || !currentAdmin) return;
+    const items = [
+      {setting_key:"site_name",setting_value:{value:$("editSiteTitle").value.trim()}},
+      {setting_key:"site_description",setting_value:{value:$("editSiteDescription").value.trim()}}
+    ];
+    for (const item of items) {
+      const {error} = await db.from("site_settings").upsert({...item,updated_at:new Date().toISOString(),updated_by:currentAdmin.id},{onConflict:"setting_key"});
+      if (error) return message("adminMessage","บันทึกการตั้งค่าไม่สำเร็จ: "+error.message,"err");
+    }
+    await loadSettings();
+    message("adminMessage","บันทึกการตั้งค่าเว็บไซต์เรียบร้อย","ok");
+  });
+  $("exportButton").onclick = () => {
+    if (!requests.length) return message("adminMessage","ยังไม่มีข้อมูลสำหรับส่งออก");
+    const cols = ["student_name","student_code","student_class","equipment_name","borrow_at","return_at","status","admin_note","created_at"];
+    const csv = [cols.join(","),...requests.map(r=>cols.map(k=>`"${String(r[k]??"").replace(/"/g,'""')}"`).join(","))].join("\r\n");
+    const blob = new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href=url; a.download="borrow-requests.csv"; a.click(); URL.revokeObjectURL(url);
+  };
+  if (db) {
+    loadSettings();
+    db.auth.onAuthStateChange((_event,session)=>{ if(session?.user) setTimeout(verifyAdmin,0); });
+  }
+})();
+</script>
+</body>
+</html>
 
